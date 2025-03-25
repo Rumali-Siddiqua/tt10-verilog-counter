@@ -8,69 +8,65 @@ from cocotb.triggers import ClockCycles
 
 @cocotb.test()
 async def test_project(dut):
-    dut._log.info("Start")
+    dut._log.info("Starting test...")
 
-    # Set the clock period to 10 us (100 KHz)
-    clock = Clock(dut.clk, 10, units="us")
+    # Set up clock
+    clock = Clock(dut.clk, 10, units="us")  # 100 kHz clock
     cocotb.start_soon(clock.start())
 
     # Reset the module
-    dut._log.info("Reset")
     dut.ena.value = 1
-    dut.ui_in.value = 0  # No toggle, no IO output
+    dut.ui_in.value = 0  # No toggle, counter mode
     dut.uio_in.value = 0
     dut.rst_n.value = 0
-    await ClockCycles(dut.clk, 10)
+    await ClockCycles(dut.clk, 10)  # Hold reset for 10 cycles
 
-    dut.rst_n.value = 1  # Release reset
+    # Release reset
+    dut.rst_n.value = 1
     await ClockCycles(dut.clk, 1)
 
+    # Check counter increments correctly
     dut._log.info("Testing Counter Mode")
 
-    # Test counter increments without toggle
-    dut.ui_in.value = 0b00  # No toggle, counter output mode
     await ClockCycles(dut.clk, 1)
-    assert dut.uo_out.value == 0x01  # Counter increments by 1
+    assert dut.uo_out.value == 0x01, f"Counter mismatch: {dut.uo_out.value} != 0x01"
 
     await ClockCycles(dut.clk, 1)
-    assert dut.uo_out.value == 0x02  # Counter increments by 2
+    assert dut.uo_out.value == 0x02, f"Counter mismatch: {dut.uo_out.value} != 0x02"
 
     await ClockCycles(dut.clk, 1)
-    assert dut.uo_out.value == 0x03  # Counter increments by 3
+    assert dut.uo_out.value == 0x03, f"Counter mismatch: {dut.uo_out.value} != 0x03"
 
+    # Test toggle mode
     dut._log.info("Testing Toggle Mode")
-
-    # Enable toggle mode
-    dut.ui_in.value = 0b01  # Toggle mode
-    await ClockCycles(dut.clk, 1)
-    assert dut.uo_out.value == ~0x04 & 0xFF  # Inverted counter value
+    dut.ui_in.value = 0b01  # Enable toggle mode
 
     await ClockCycles(dut.clk, 1)
-    assert dut.uo_out.value == ~0x05 & 0xFF  # Inverted counter value
+    assert dut.uo_out.value == ~0x04 & 0xFF, f"Toggle mismatch: {dut.uo_out.value} != ~0x04"
 
     await ClockCycles(dut.clk, 1)
-    assert dut.uo_out.value == ~0x06 & 0xFF  # Inverted counter value
+    assert dut.uo_out.value == ~0x05 & 0xFF, f"Toggle mismatch: {dut.uo_out.value} != ~0x05"
 
+    # Test IO output mode
     dut._log.info("Testing IO Output Mode")
-
-    # Enable IO output mode
-    dut.ui_in.value = 0b10  # IO mode enabled
-    await ClockCycles(dut.clk, 1)
-    assert dut.uio_out.value == 0x07  # Counter value on IO pins
+    dut.ui_in.value = 0b10  # Enable IO output mode
 
     await ClockCycles(dut.clk, 1)
-    assert dut.uio_out.value == 0x08  # Counter value on IO pins
-
-    dut._log.info("Testing Combined Toggle + IO Mode")
-
-    # Enable both toggle + IO mode
-    dut.ui_in.value = 0b11  # Toggle + IO mode
-    await ClockCycles(dut.clk, 1)
-    assert dut.uo_out.value == ~0x09 & 0xFF  # Inverted counter on output
-    assert dut.uio_out.value == ~0x09 & 0xFF  # Inverted counter on IO
+    assert dut.uio_out.value == 0x06, f"IO mismatch: {dut.uio_out.value} != 0x06"
 
     await ClockCycles(dut.clk, 1)
-    assert dut.uo_out.value == ~0x0A & 0xFF  # Inverted counter on output
-    assert dut.uio_out.value == ~0x0A & 0xFF  # Inverted counter on IO
+    assert dut.uio_out.value == 0x07, f"IO mismatch: {dut.uio_out.value} != 0x07"
 
-    dut._log.info("Test complete")
+    # Test combined toggle + IO mode
+    dut._log.info("Testing Combined Mode")
+    dut.ui_in.value = 0b11  # Enable both toggle and IO output
+
+    await ClockCycles(dut.clk, 1)
+    assert dut.uo_out.value == ~0x08 & 0xFF, f"Combined mode mismatch: {dut.uo_out.value} != ~0x08"
+    assert dut.uio_out.value == ~0x08 & 0xFF, f"Combined IO mismatch: {dut.uio_out.value} != ~0x08"
+
+    await ClockCycles(dut.clk, 1)
+    assert dut.uo_out.value == ~0x09 & 0xFF, f"Combined mode mismatch: {dut.uo_out.value} != ~0x09"
+    assert dut.uio_out.value == ~0x09 & 0xFF, f"Combined IO mismatch: {dut.uio_out.value} != ~0x09"
+
+    dut._log.info("Test completed successfully!")
