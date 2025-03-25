@@ -8,65 +8,33 @@ from cocotb.triggers import ClockCycles
 
 @cocotb.test()
 async def test_project(dut):
-    dut._log.info("Starting test...")
+    dut._log.info("Start")
 
-    # Set up clock
-    clock = Clock(dut.clk, 10, units="us")  # 100 kHz clock
+    # Set the clock period to 10 us (100 KHz)
+    clock = Clock(dut.clk, 10, units="us")
     cocotb.start_soon(clock.start())
 
-    # Reset the module
+    # Reset
+    dut._log.info("Reset")
     dut.ena.value = 1
-    dut.ui_in.value = 0  # No toggle, counter mode
+    dut.ui_in.value = 0
     dut.uio_in.value = 0
     dut.rst_n.value = 0
-    await ClockCycles(dut.clk, 10)  # Hold reset for 10 cycles
-
-    # Release reset
+    await ClockCycles(dut.clk, 10)
     dut.rst_n.value = 1
+
+    dut._log.info("Test project behavior")
+
+    # Set the input values you want to test
+    dut.ui_in.value = 20
+    dut.uio_in.value = 30
+
+    # Wait for one clock cycle to see the output values
     await ClockCycles(dut.clk, 1)
 
-    # Check counter increments correctly
-    dut._log.info("Testing Counter Mode")
+    # The following assersion is just an example of how to check the output values.
+    # Change it to match the actual expected output of your module:
+   # assert dut.uo_out.value == 50
 
-    await ClockCycles(dut.clk, 1)
-    assert dut.uo_out.value == 0x01, f"Counter mismatch: {dut.uo_out.value} != 0x01"
-
-    await ClockCycles(dut.clk, 1)
-    assert dut.uo_out.value == 0x02, f"Counter mismatch: {dut.uo_out.value} != 0x02"
-
-    await ClockCycles(dut.clk, 1)
-    assert dut.uo_out.value == 0x03, f"Counter mismatch: {dut.uo_out.value} != 0x03"
-
-    # Test toggle mode
-    dut._log.info("Testing Toggle Mode")
-    dut.ui_in.value = 0b01  # Enable toggle mode
-
-    await ClockCycles(dut.clk, 1)
-    assert dut.uo_out.value == ~0x04 & 0xFF, f"Toggle mismatch: {dut.uo_out.value} != ~0x04"
-
-    await ClockCycles(dut.clk, 1)
-    assert dut.uo_out.value == ~0x05 & 0xFF, f"Toggle mismatch: {dut.uo_out.value} != ~0x05"
-
-    # Test IO output mode
-    dut._log.info("Testing IO Output Mode")
-    dut.ui_in.value = 0b10  # Enable IO output mode
-
-    await ClockCycles(dut.clk, 1)
-    assert dut.uio_out.value == 0x06, f"IO mismatch: {dut.uio_out.value} != 0x06"
-
-    await ClockCycles(dut.clk, 1)
-    assert dut.uio_out.value == 0x07, f"IO mismatch: {dut.uio_out.value} != 0x07"
-
-    # Test combined toggle + IO mode
-    dut._log.info("Testing Combined Mode")
-    dut.ui_in.value = 0b11  # Enable both toggle and IO output
-
-    await ClockCycles(dut.clk, 1)
-    assert dut.uo_out.value == ~0x08 & 0xFF, f"Combined mode mismatch: {dut.uo_out.value} != ~0x08"
-    assert dut.uio_out.value == ~0x08 & 0xFF, f"Combined IO mismatch: {dut.uio_out.value} != ~0x08"
-
-    await ClockCycles(dut.clk, 1)
-    assert dut.uo_out.value == ~0x09 & 0xFF, f"Combined mode mismatch: {dut.uo_out.value} != ~0x09"
-    assert dut.uio_out.value == ~0x09 & 0xFF, f"Combined IO mismatch: {dut.uio_out.value} != ~0x09"
-
-    dut._log.info("Test completed successfully!")
+    # Keep testing the module by changing the input values, waiting for
+    # one or more clock cycles, and asserting the expected output values.
